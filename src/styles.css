@@ -20,4 +20,7 @@
 .logo{font-size:24px}
 .logo span{width:40px;height:40px}
 nav{height:52px;gap:30px}
+.site-header{position:fixed;top:0;left:0;right:0}
+.site-header + main{padding-top:130px}
 @media(max-width:850px){.header-main{height:auto;padding:12px 18px;gap:14px}nav{height:52px;gap:18px}}
+@media(max-width:850px){.site-header + main{padding-top:175px}}
