@@ -1,0 +1,247 @@
+KKOOKS SETUP CHECKLIST
+
+THIS IS THE ORDER YOU SHOULD DO THINGS
+
+1. Install Node.js LTS from https://nodejs.org/
+2. Open PowerShell in the Frontend folder.
+3. Run this exact command:
+   Set-Location "C:\Users\avish\Downloads\KKooks\Frontend"
+4. Run this exact command:
+   & "C:\Program Files\nodejs\npm.cmd" install
+5. Run this exact command:
+   & "C:\Program Files\nodejs\npm.cmd" run dev
+6. Open: http://localhost:5173
+7. Make sure the frontend loads before connecting anything else.
+
+CORE STACK
+- Firebase = authentication + backend
+- GitHub = code repo + hosting deployment
+- Frontend = the KKooks recipe platform, account flows, favorites, menus, newsletter, and admin publishing tools
+
+CURRENT APP FEATURES
+- Dark KKooks cooking-platform homepage modeled after the current reference site
+- Recipe search and empty collection state
+- User account signup, login, logout, and local favorites
+- Recipe creation form for publishing the first recipe
+- Favorites page and menu planning entry point
+- Shop and external product link structure ready for future catalog content
+- Newsletter signup feedback
+- Admin workspace for homepage editing and recipe publishing
+- Public listings are intentionally empty until you publish your own content
+
+STEP 1: CREATE THE FIREBASE PROJECT
+1. Go to https://console.firebase.google.com/
+2. Click Add project
+3. Name it something like: kkooks-app
+4. Keep the project ID because you will need it later
+5. Finish creating the project
+
+STEP 2: ENABLE FIREBASE AUTHENTICATION
+1. In Firebase Console, open Authentication
+2. Click Get started
+3. Enable Email/Password sign-in
+4. Optionally enable Google sign-in later
+5. Save the settings
+
+STEP 3: CREATE FIREBASE DATABASE
+1. Open Firestore Database
+2. Click Create database
+3. Choose a location close to your audience
+4. Start in test mode at first
+5. Create collections for:
+   - users
+   - recipes
+   - menus
+   - newsletterSubscribers
+   - siteContent
+6. Later, add more collections if needed
+
+STEP 4: GET YOUR FIREBASE WEB CONFIG
+This is the most important config block you need before wiring the app to Firebase.
+The frontend cannot talk to Firebase until you have a valid web config.
+
+1. In Firebase Console, open Project settings
+2. Click the General tab
+3. Scroll down to Your apps
+4. Click Add app
+5. Choose the Web icon (</>)
+6. Register your app with a nickname such as: kkooks-web
+7. Copy the Firebase configuration object that appears
+8. Save these values somewhere safe:
+   - apiKey
+   - authDomain
+   - projectId
+   - storageBucket
+   - messagingSenderId
+   - appId
+
+What this config does:
+- It tells your frontend which Firebase project to connect to
+- It enables Firebase Authentication and Firestore access in the browser
+- It is required before your login pages and backend calls can work
+
+Important:
+- This is not a password and it is not a secret in the same way as a service account key
+- But it still belongs to your app and should not be exposed in public repos
+- Put it in a .env file and keep it out of GitHub if possible
+
+Example of what the object looks like:
+const firebaseConfig = {
+  apiKey: "YOUR_API_KEY",
+  authDomain: "your-project.firebaseapp.com",
+  projectId: "your-project-id",
+  storageBucket: "your-project.appspot.com",
+  messagingSenderId: "1234567890",
+  appId: "1:1234567890:web:abcdef123456"
+};
+
+This is the exact section you will later plug into your frontend code.
+
+STEP 5: PUT FIREBASE VALUES IN THE FRONTEND
+1. Open the .env.example file in the Frontend folder
+2. Copy it into a .env file
+3. Replace the placeholder values with your real Firebase values
+4. Do not commit real secrets to GitHub
+
+STEP 6: CONNECT THE FRONTEND TO FIREBASE AUTH
+1. Install the Firebase SDK in the frontend
+2. Initialize Firebase in the app
+3. Create sign-up and sign-in pages
+4. Protect pages that should only be visible to logged-in users
+5. Store user data in Firestore after signup
+
+STEP 7: CONNECT THE FRONTEND TO FIREBASE BACKEND
+WHAT THIS STEP MEANS:
+This step connects the app's real data to Firestore. Firebase Authentication already handles
+login, signup, logout, and password reset. Firestore is the separate Firebase service that
+stores user profiles, recipes, menus, favorites, newsletter subscriptions, and editable website content.
+
+CURRENT STATUS:
+- Firebase is initialized in src/firebase.js
+- New users are saved in the Firestore users collection after signup
+- The login and signup pages are connected to Firebase Authentication
+- Recipe creation currently saves locally in the browser
+- Favorites currently save locally in the browser
+- Admin homepage content saves to Firestore when Firebase is available
+- Admin-published recipes save to Firestore when configured, with local fallback for development
+
+WHAT WE STILL NEED TO BUILD:
+1. Create helper functions for:
+   - createUserProfile
+   - getUserProfile
+   - createRecipe
+   - getRecipes
+   - updateRecipe
+   - deleteRecipe
+   - createMenu
+   - getMenus
+2. Save recipes, favorites, menus, and newsletter subscriptions in Firestore
+3. Use Firebase Storage only if you need file uploads/images
+
+STEP 7A: FINISH FIRESTORE CONSOLE SETUP
+1. In Firebase Console, open Firestore Database and create the database if you have not already.
+2. Create these collections when you are ready to add real records:
+   - users (created automatically when a user signs up)
+   - recipes (used by the Recipes page)
+   - menus (used by menu planning)
+   - favorites (used by saved recipes)
+   - newsletterSubscribers (used by newsletter signup)
+   - siteContent (the app saves the main editable content as the main document)
+   - communities
+   - venues
+   - bookings
+3. For initial testing, you may use test mode briefly.
+4. Before publishing, replace test mode with Security Rules.
+5. Test signup, site editing, recipe publishing, and newsletter signup while watching the Firestore Data tab.
+
+HOW THE FINISHED FLOW WILL WORK:
+1. A user signs up or logs in with Firebase Authentication.
+2. The app identifies the user with their Firebase user ID.
+3. The app reads that user's profile and allowed data from Firestore.
+4. Creating or editing a recipe writes a document to Firestore.
+5. The Recipes page reads the latest published recipe documents.
+6. Favorites and menus are associated with the signed-in user.
+7. The Admin workspace writes homepage content and published recipes.
+8. Firebase Security Rules decide which users can read or edit each document.
+
+IMPORTANT:
+- Authentication and Firestore are two different Firebase services.
+- Being logged in does not automatically give a user permission to edit data.
+- Firestore Security Rules must be configured before using real production data.
+- Do not put a Firebase service account key in the frontend.
+
+STEP 8: MAKE THE WEBSITE EDITABLE FROM THE FRONTEND
+1. Use the Admin workspace in the app
+2. Add your admin email to VITE_ADMIN_EMAILS in the Frontend/.env file
+3. Only a signed-in user with role admin can open the Admin workspace
+4. Let admins update the homepage hero and publish or delete recipes
+5. Test the edit workflow in the browser first
+6. Configure Firestore Security Rules so normal users cannot write admin data
+
+STEP 8A: GRANT THE FIRST ADMIN
+1. Create an account through the app.
+2. In Firestore, open the matching document in users/{userId}.
+3. Add the field role with the string value admin.
+4. Add the same email to VITE_ADMIN_EMAILS in Frontend/.env if you want the admin controls to appear immediately.
+5. Deploy the included firestore.rules file from the Firebase Console Rules tab.
+6. Sign out and sign back in to refresh the admin status.
+
+ADMIN ACCESS NOTE:
+- VITE_ADMIN_EMAILS is a comma-separated list, for example: owner@example.com,manager@example.com
+- The email must match the Firebase Authentication account exactly, ignoring letter case
+- Keep the .env file private and never commit it to GitHub
+- Hiding controls in the frontend is only the user experience layer; Firestore Security Rules are required for real protection
+- The included firestore.rules file blocks normal users from creating, editing, or deleting recipes and site content
+
+STEP 9: PUSH THE PROJECT TO GITHUB
+1. Create a GitHub repository
+2. Push the Frontend project files to GitHub
+3. Make sure the repo is connected to your project code
+4. Keep the repo private or public depending on your plan
+
+STEP 10: DEPLOY WITH GITHUB HOSTING FLOW
+1. Use GitHub Pages or a hosted provider like Vercel or Netlify
+2. Set build command to: npm run build
+3. Set output folder to: dist
+4. Deploy from the main branch
+5. Make sure the frontend loads correctly after deployment
+
+STEP 11: FINAL TESTING
+1. Create a test user account
+2. Log in successfully
+3. Publish a test recipe and create a test menu
+4. Edit homepage content from the Admin workspace
+5. Check Firebase data in Firestore
+6. Verify the deployed site loads properly
+
+FILES TO UPDATE LATER
+- src/App.jsx
+- src/styles.css
+- .env.example
+- README.md
+
+REQUIRED VALUES TO REPLACE LATER
+- Firebase API key
+- Firebase auth domain
+- Firebase project ID
+- Firebase storage bucket
+- Firebase messaging sender ID
+- Firebase app ID
+- GitHub repo URL
+- GitHub branch name
+
+IMPORTANT NOTES
+- Firebase is for auth + backend in this project
+- GitHub is for hosting and version control
+- Do not expose real Firebase keys in public repositories
+- Use environment variables in production
+- Keep admin editing behind Firebase rules later
+
+THE MOST IMPORTANT TRUTH
+The clean app architecture is:
+- Frontend React app for pages and UI
+- Firebase auth for login
+- Firebase Firestore for app data
+- GitHub for storage and deployment
+
+This is the correct setup for your project.
