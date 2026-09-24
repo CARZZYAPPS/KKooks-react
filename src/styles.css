@@ -14,3 +14,5 @@
 .header-actions .action-label{font-size:13px;font-weight:800;vertical-align:middle}
 .header-actions .menu-toggle{display:none}
 @media(max-width:850px){.header-actions .action-label{display:none}.header-actions .menu-toggle{display:inline-flex;align-items:center}.site-header nav.open{display:flex}}
+.site-shell{overflow:clip}
+.site-header{position:sticky;top:0}
