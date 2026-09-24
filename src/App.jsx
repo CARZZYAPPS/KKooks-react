@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { createUserWithEmailAndPassword, onAuthStateChanged, signInWithEmailAndPassword, signOut } from 'firebase/auth'
 import { ChefHat, Clock3, Flame, Heart, LogOut, Mail, Menu, Search, Settings, Sparkles, UserRound, X } from 'lucide-react'
 import { auth, db } from './firebase'
-import { createMenu, createRecipe, createUserProfile, deleteMenu, deleteRecipe, getMenus, getRecipes, getSiteContent, getUserProfile, saveSiteContent, saveUserFavorites, subscribeToNewsletter } from './firestore'
+import { createMenu, createRecipe, createUserProfile, deleteMenu, deleteRecipe, getMenus, getPendingRecipes, getRecipes, getSiteContent, getUserProfile, saveSiteContent, saveUserFavorites, subscribeToNewsletter, updateRecipe } from './firestore'
 
 const chefs = [
   ['Esty Wolbe', 'Home-style classics', 'https://images.unsplash.com/photo-1556910103-1c02745aae4d?auto=format&fit=crop&w=500&q=85'],
@@ -39,7 +39,8 @@ function App() {
   const [authPassword, setAuthPassword] = useState('')
   const [authError, setAuthError] = useState('')
   const isAdmin = Boolean(user?.email && profile?.role === 'admin' && (!adminEmails.length || adminEmails.includes(user.email.toLowerCase())))
-  const availableRecipes = createdRecipes
+  const isContributor = profile?.role === 'contributor'
+  const availableRecipes = createdRecipes.filter((recipe) => isAdmin || recipe.status !== 'pending')
 
   useEffect(() => {
     if (!auth) return undefined
@@ -102,7 +103,7 @@ function App() {
 
   if (page === 'recipes') return <RecipesPage recipes={availableRecipes} search={search} setSearch={setSearch} onHome={() => go('home')} onCreate={() => go('create')} onNavigate={go} user={user} favorites={favorites} onFavorite={toggleFavorite} />
   if (page === 'shop') return <ShopPage onNavigate={go} />
-  if (page === 'create') return <CreateRecipePage onCancel={() => go('recipes')} onSave={(recipe) => { setCreatedRecipes((current) => [recipe, ...current]); go('recipes') }} />
+  if (page === 'create') return <CreateRecipePage user={user} contributor={isContributor} onCancel={() => go('recipes')} onSave={(recipe) => { setCreatedRecipes((current) => [recipe, ...current]); go('recipes') }} />
   if (page === 'favorites') return <FavoritesPage favorites={favorites} recipes={availableRecipes} onHome={() => go('home')} onNavigate={go} onFavorite={toggleFavorite} />
   if (page === 'menus') return <MenusPage menus={menus} setMenus={setMenus} recipes={availableRecipes} user={user} onHome={() => go('home')} onCreate={() => go('create')} onNavigate={go} />
   if (page === 'admin') return isAdmin ? <AdminPage recipes={createdRecipes} setRecipes={setCreatedRecipes} content={siteContent} setContent={setSiteContent} user={user} onHome={() => go('home')} /> : <ComingSoonPage title="Admin access required." text="Sign in with an approved administrator account to manage KKooks content." action="Go to account" onAction={() => go('account')} onHome={() => go('home')} />
@@ -150,7 +151,20 @@ function RecipeCard({ recipe, favorite, onFavorite }) { return <article classNam
 function RecipeRow({ recipe, number, favorite, onFavorite }) { return <article className="recipe-row"><strong>{String(number).padStart(2, '0')}</strong><img src={recipe.image} alt="" /><div><h3>{recipe.title}</h3><p><ChefHat size={14} aria-hidden="true" /> {recipe.chef}</p></div><button type="button" aria-label={favorite ? `Remove ${recipe.title} from favorites` : `Save ${recipe.title} to favorites`} title={favorite ? 'Remove from favorites' : 'Save to favorites'} onClick={onFavorite}><Heart size={20} fill={favorite ? 'currentColor' : 'none'} aria-hidden="true" /></button></article> }
 function RecipesPage({ recipes: userRecipes, search, setSearch, onHome, onCreate, onNavigate, user, favorites, onFavorite }) { const shown = userRecipes.filter((recipe) => `${recipe.title} ${recipe.chef} ${recipe.mood}`.toLowerCase().includes(search.toLowerCase())); return <div className="site-shell"><Header onNavigate={onNavigate} user={user} favorites={favorites.length} onSignOut={() => signOut(auth)} /><main className="recipes-page"><div className="recipes-heading"><span className="eyebrow">The collection</span><h1>Your recipe collection.</h1><p>Recipes you publish or save will appear here.</p><div className="recipe-search"><Search size={22} aria-hidden="true" /><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search recipes" /></div><button className="primary-button create-button" type="button" onClick={onCreate}>Create a recipe</button></div>{shown.length ? <div className="recipe-grid user-recipe-grid">{shown.map((recipe) => <RecipeCard key={recipe.id} recipe={recipe} favorite={favorites.includes(recipe.id)} onFavorite={() => onFavorite(recipe.id)} />)}</div> : <p className="empty-state">No recipes published yet. Create your first recipe to start your collection.</p>}</main><Footer onNavigate={onNavigate} /></div> }
 function ShopPage({ onNavigate }) { return <div className="site-shell"><Header onNavigate={onNavigate} favorites={0} /><main className="recipes-page"><div className="recipes-heading"><span className="eyebrow">Shop</span><h1>Shoppables are coming soon.</h1><p>Your kitchen favorites will appear here.</p></div></main><Footer onNavigate={onNavigate} /></div> }
-function CreateRecipePage({ onCancel, onSave }) { const [form, setForm] = useState({ title: '', chef: 'My kitchen', mood: 'Weeknight', description: '' }); const submit = (event) => { event.preventDefault(); onSave({ ...form, id: `recipe-${Date.now()}`, image: 'https://images.unsplash.com/photo-1498837167922-ddd27525d352?auto=format&fit=crop&w=900&q=85' }) }; return <div className="site-shell"><main className="create-page"><button className="logo" type="button" onClick={onCancel}><span><ChefHat size={22} aria-hidden="true" /></span>KKooks</button><section className="create-card"><span className="eyebrow">Your kitchen</span><h1>Share a recipe.</h1><p>Add a family favorite or something you just invented.</p><form onSubmit={submit}><label>Recipe name<input required value={form.title} onChange={(event) => setForm({ ...form, title: event.target.value })} placeholder="Sunday roast" /></label><label>By<input value={form.chef} onChange={(event) => setForm({ ...form, chef: event.target.value })} /></label><label>Category<select value={form.mood} onChange={(event) => setForm({ ...form, mood: event.target.value })}><option>Weeknight</option><option>Shabbat</option><option>Holiday</option><option>Dairy</option><option>Salads</option><option>Desserts</option></select></label><label>Description<textarea rows="5" value={form.description} onChange={(event) => setForm({ ...form, description: event.target.value })} placeholder="What makes this recipe special?" /></label><div className="form-buttons"><button className="primary-button" type="submit">Publish recipe</button><button className="secondary-button" type="button" onClick={onCancel}>Cancel</button></div></form></section></main></div> }
+function CreateRecipePage({ user, contributor, onCancel, onSave }) {
+  const submit = async (recipe) => {
+    if (contributor) {
+      const pendingRecipe = { ...recipe, status: 'pending' }
+      if (user && db) pendingRecipe.id = await createRecipe(pendingRecipe, user.uid)
+      onSave(pendingRecipe)
+      return
+    }
+    onSave(recipe)
+  }
+  return <LocalCreateRecipePage onCancel={onCancel} onSave={submit} contributor={contributor} />
+}
+
+function LocalCreateRecipePage({ onCancel, onSave, contributor }) { const [form, setForm] = useState({ title: '', chef: 'My kitchen', mood: 'Weeknight', description: '' }); const submit = (event) => { event.preventDefault(); onSave({ ...form, id: `recipe-${Date.now()}`, image: 'https://images.unsplash.com/photo-1498837167922-ddd27525d352?auto=format&fit=crop&w=900&q=85' }) }; return <div className="site-shell"><main className="create-page"><button className="logo" type="button" onClick={onCancel}><span><ChefHat size={22} aria-hidden="true" /></span>KKooks</button><section className="create-card"><span className="eyebrow">Your kitchen</span><h1>{contributor ? 'Submit a recipe.' : 'Share a recipe.'}</h1><p>{contributor ? 'Your recipe will be reviewed by an admin before it is published.' : 'Add a family favorite or something you just invented.'}</p><form onSubmit={submit}><label>Recipe name<input required value={form.title} onChange={(event) => setForm({ ...form, title: event.target.value })} placeholder="Sunday roast" /></label><label>By<input value={form.chef} onChange={(event) => setForm({ ...form, chef: event.target.value })} /></label><label>Category<select value={form.mood} onChange={(event) => setForm({ ...form, mood: event.target.value })}><option>Weeknight</option><option>Shabbat</option><option>Holiday</option><option>Dairy</option><option>Salads</option><option>Desserts</option></select></label><label>Description<textarea rows="5" value={form.description} onChange={(event) => setForm({ ...form, description: event.target.value })} placeholder="What makes this recipe special?" /></label><div className="form-buttons"><button className="primary-button" type="submit">{contributor ? 'Submit for review' : 'Publish recipe'}</button><button className="secondary-button" type="button" onClick={onCancel}>Cancel</button></div></form></section></main></div> }
 function FavoritesPage({ favorites, recipes: userRecipes, onHome, onNavigate, onFavorite }) { const saved = userRecipes.filter((recipe) => favorites.includes(recipe.id)); return <div className="site-shell"><main className="recipes-page"><button className="logo" type="button" onClick={onHome}><span><ChefHat size={22} aria-hidden="true" /></span>KKooks</button><div className="recipes-heading"><span className="eyebrow">Saved by you</span><h1>Favorites.</h1><p>{saved.length ? `${saved.length} saved recipe${saved.length === 1 ? '' : 's'}.` : 'Your saved recipes will appear here.'}</p></div>{saved.length ? <div className="recipe-grid">{saved.map((recipe) => <RecipeCard key={recipe.id} recipe={recipe} favorite onFavorite={() => onFavorite(recipe.id)} />)}</div> : <p className="empty-state">Nothing saved yet. Browse recipes and tap the heart to save one.</p>}</main><Footer onNavigate={onNavigate} /></div> }
 function MenusPage({ menus, setMenus, recipes, user, onHome, onCreate, onNavigate }) {
   const [name, setName] = useState('')
@@ -206,7 +220,36 @@ function ImportRecipePanel({ setRecipes, user }) {
 }
 
 function AdminPage(props) {
-  return <><RecipeAdminPage {...props} /><ImportRecipePanel setRecipes={props.setRecipes} user={props.user} /></>
+  return <><RecipeAdminPage {...props} /><AdminReviewPanel setRecipes={props.setRecipes} user={props.user} /><ImportRecipePanel setRecipes={props.setRecipes} user={props.user} /></>
+}
+
+function AdminReviewPanel({ setRecipes, user }) {
+  const [pendingRecipes, setPendingRecipes] = useState([])
+  const [status, setStatus] = useState('')
+  useEffect(() => {
+    if (!db) return
+    getPendingRecipes().then(setPendingRecipes).catch((error) => setStatus(error.message))
+  }, [])
+  const approve = async (recipe) => {
+    try {
+      await updateRecipe(recipe.id, { status: 'published', approvedBy: user.uid })
+      setPendingRecipes((current) => current.filter((item) => item.id !== recipe.id))
+      setRecipes((current) => [{ ...recipe, status: 'published', approvedBy: user.uid }, ...current])
+      setStatus('Recipe approved and published.')
+    } catch (error) {
+      setStatus(error.message)
+    }
+  }
+  const reject = async (recipe) => {
+    try {
+      await deleteRecipe(recipe.id)
+      setPendingRecipes((current) => current.filter((item) => item.id !== recipe.id))
+      setStatus('Pending recipe deleted.')
+    } catch (error) {
+      setStatus(error.message)
+    }
+  }
+  return <section className="admin-review-panel"><span className="eyebrow">Review queue</span><h2>Contributor submissions.</h2>{pendingRecipes.length ? pendingRecipes.map((recipe) => <article key={recipe.id}><div><h3>{recipe.title}</h3><p>{recipe.chef} · {recipe.mood}</p>{recipe.description && <p>{recipe.description}</p>}</div><div className="form-buttons"><button className="primary-button" type="button" onClick={() => approve(recipe)}>Approve</button><button className="secondary-button" type="button" onClick={() => reject(recipe)}>Delete</button></div></article>) : <p className="empty-state">No contributor recipes are waiting for review.</p>}{status && <p className="admin-status" role="status">{status}</p>}</section>
 }
 
 function RecipeAdminPage({ recipes: userRecipes, setRecipes, content, setContent, user, onHome }) {

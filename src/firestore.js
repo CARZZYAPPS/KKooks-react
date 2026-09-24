@@ -8,7 +8,8 @@ import {
   query,
   serverTimestamp,
   setDoc,
-  updateDoc
+  updateDoc,
+  where
 } from 'firebase/firestore'
 import { db } from './firebase'
 
@@ -86,6 +87,7 @@ export async function createRecipe(recipe, userId) {
   requireDatabase()
   const recipeRef = await addDoc(collection(db, 'recipes'), {
     ...recipe,
+    status: recipe.status || 'published',
     ownerId: userId,
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp()
@@ -95,7 +97,13 @@ export async function createRecipe(recipe, userId) {
 
 export async function getRecipes() {
   requireDatabase()
-  const snapshot = await getDocs(query(collection(db, 'recipes')))
+  const snapshot = await getDocs(query(collection(db, 'recipes'), where('status', '==', 'published')))
+  return snapshot.docs.map((recipeDoc) => ({ id: recipeDoc.id, ...recipeDoc.data() }))
+}
+
+export async function getPendingRecipes() {
+  requireDatabase()
+  const snapshot = await getDocs(query(collection(db, 'recipes'), where('status', '==', 'pending')))
   return snapshot.docs.map((recipeDoc) => ({ id: recipeDoc.id, ...recipeDoc.data() }))
 }
 
