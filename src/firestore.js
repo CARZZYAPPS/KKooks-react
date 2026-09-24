@@ -133,6 +133,11 @@ export async function createMenu(menu, userId) {
   return menuRef.id
 }
 
+export async function deleteMenu(menuId) {
+  requireDatabase()
+  await deleteDoc(doc(db, 'menus', menuId))
+}
+
 export async function getMenus(userId) {
   requireDatabase()
   const snapshot = await getDocs(query(collection(db, 'menus')))
