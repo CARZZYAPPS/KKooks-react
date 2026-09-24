@@ -4,14 +4,6 @@ import { ChefHat, Clock3, Flame, Heart, LogOut, Mail, Menu, Search, Settings, Sp
 import { auth, db } from './firebase'
 import { createMenu, createRecipe, createUserProfile, deleteMenu, deleteRecipe, getMenus, getRecipes, getSiteContent, getUserProfile, saveSiteContent, saveUserFavorites, subscribeToNewsletter } from './firestore'
 
-const recipes = [
-  { id: 'seed-bakoola', title: 'Bakoola', chef: 'Zineb Hattab', mood: 'Holiday', image: 'https://images.unsplash.com/photo-1547592180-85f173990554?auto=format&fit=crop&w=900&q=85' },
-  { id: 'seed-gem-lettuce', title: 'Gem Lettuce Hearts with Mandarin and Poppy Seeds', chef: 'Zineb Hattab', mood: 'Salads', image: 'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?auto=format&fit=crop&w=900&q=85' },
-  { id: 'seed-couscous', title: 'Roasted Tomato and Leek Couscous', chef: 'Miriam (Pascal) Cohen', mood: 'Weeknight', image: 'https://images.unsplash.com/photo-1473093295043-cdd812d0e601?auto=format&fit=crop&w=900&q=85' },
-  { id: 'seed-razzle-bundt', title: 'Razzle Bundt', chef: 'Miriam (Pascal) Cohen', mood: 'Desserts', image: 'https://images.unsplash.com/photo-1578985545062-69928b1d9587?auto=format&fit=crop&w=900&q=85' },
-  { id: 'seed-cookie-dough', title: 'Cookie Dough Swirled Fudge Bundt Cake', chef: 'Esty Wolbe', mood: 'Desserts', image: 'https://images.unsplash.com/photo-1606313564200-e75d5e30476c?auto=format&fit=crop&w=900&q=85' }
-]
-
 const chefs = [
   ['Esty Wolbe', 'Home-style classics', 'https://images.unsplash.com/photo-1556910103-1c02745aae4d?auto=format&fit=crop&w=500&q=85'],
   ['Yussi Weisz', 'Holiday mains', 'https://images.unsplash.com/photo-1556911220-e15b29be8c8f?auto=format&fit=crop&w=500&q=85'],
@@ -47,7 +39,7 @@ function App() {
   const [authPassword, setAuthPassword] = useState('')
   const [authError, setAuthError] = useState('')
   const isAdmin = Boolean(user?.email && profile?.role === 'admin' && (!adminEmails.length || adminEmails.includes(user.email.toLowerCase())))
-  const availableRecipes = [...recipes, ...createdRecipes]
+  const availableRecipes = createdRecipes
 
   useEffect(() => {
     if (!auth) return undefined
@@ -134,7 +126,7 @@ function App() {
 
         <section className="content-section">
           <div className="section-heading"><div><span className="eyebrow">Your kitchen starts here</span><h2>Find your next favorite.</h2><p>Browse recipes, save the ones you love, and build a menu around them.</p></div><button type="button" onClick={() => go('recipes')}>Browse all <span aria-hidden="true">→</span></button></div>
-          <div className="recipe-grid">{displayedRecipes.slice(0, 5).map((recipe) => <RecipeCard key={recipe.id} recipe={recipe} favorite={favorites.includes(recipe.id)} onFavorite={() => toggleFavorite(recipe.id)} />)}</div>
+          {displayedRecipes.length ? <div className="recipe-grid">{displayedRecipes.slice(0, 5).map((recipe) => <RecipeCard key={recipe.id} recipe={recipe} favorite={favorites.includes(recipe.id)} onFavorite={() => toggleFavorite(recipe.id)} />)}</div> : <p className="empty-state">No recipes published yet. An admin can import or publish the first recipe.</p>}
         </section>
 
         <section className="make-section"><div><h2>Make KKooks yours</h2><p>Save favorites, build menus, and share your own recipes with the community.</p></div><div className="make-grid"><button type="button" onClick={() => go('create')}><span><ChefHat size={26} aria-hidden="true" /></span><h3>Upload your recipes</h3><p>Keep family favorites in one place — private or published to inspire others.</p></button><button type="button" onClick={() => go('menus')}><span><Menu size={26} aria-hidden="true" /></span><h3>Plan your menus</h3><p>Design personalized meal menus for Shabbat, holidays, or everyday planning.</p></button></div></section>
@@ -154,7 +146,7 @@ function Header({ onNavigate, user, isAdmin, onSignOut, favorites, brand = 'KKoo
 }
 
 function SectionHeading({ eyebrow, title, description, action, onAction }) { return <div className="section-heading"><div><span className="eyebrow">{eyebrow}</span><h2>{title}</h2>{description && <p>{description}</p>}</div>{action && <button type="button" onClick={onAction}>{action} <span>→</span></button>}</div> }
-function RecipeCard({ recipe, favorite, onFavorite }) { return <article className="recipe-card"><div className="image-wrap"><img src={recipe.image} alt={recipe.title} /><button type="button" aria-label={favorite ? `Remove ${recipe.title} from favorites` : `Save ${recipe.title} to favorites`} title={favorite ? 'Remove from favorites' : 'Save to favorites'} onClick={onFavorite}><Heart size={20} fill={favorite ? 'currentColor' : 'none'} aria-hidden="true" /></button></div><span className="card-kicker">{recipe.mood}</span><h3>{recipe.title}</h3><p><ChefHat size={14} aria-hidden="true" /> {recipe.chef}</p></article> }
+function RecipeCard({ recipe, favorite, onFavorite }) { return <article className="recipe-card"><div className="image-wrap"><img src={recipe.image} alt={recipe.title} /><button type="button" aria-label={favorite ? `Remove ${recipe.title} from favorites` : `Save ${recipe.title} to favorites`} title={favorite ? 'Remove from favorites' : 'Save to favorites'} onClick={onFavorite}><Heart size={20} fill={favorite ? 'currentColor' : 'none'} aria-hidden="true" /></button></div><span className="card-kicker">{recipe.mood}</span><h3>{recipe.title}</h3><p><ChefHat size={14} aria-hidden="true" /> {recipe.chef}</p>{recipe.sourceUrl && <a className="recipe-source" href={recipe.sourceUrl} target="_blank" rel="noreferrer">View original source</a>}</article> }
 function RecipeRow({ recipe, number, favorite, onFavorite }) { return <article className="recipe-row"><strong>{String(number).padStart(2, '0')}</strong><img src={recipe.image} alt="" /><div><h3>{recipe.title}</h3><p><ChefHat size={14} aria-hidden="true" /> {recipe.chef}</p></div><button type="button" aria-label={favorite ? `Remove ${recipe.title} from favorites` : `Save ${recipe.title} to favorites`} title={favorite ? 'Remove from favorites' : 'Save to favorites'} onClick={onFavorite}><Heart size={20} fill={favorite ? 'currentColor' : 'none'} aria-hidden="true" /></button></article> }
 function RecipesPage({ recipes: userRecipes, search, setSearch, onHome, onCreate, onNavigate, user, favorites, onFavorite }) { const shown = userRecipes.filter((recipe) => `${recipe.title} ${recipe.chef} ${recipe.mood}`.toLowerCase().includes(search.toLowerCase())); return <div className="site-shell"><Header onNavigate={onNavigate} user={user} favorites={favorites.length} onSignOut={() => signOut(auth)} /><main className="recipes-page"><div className="recipes-heading"><span className="eyebrow">The collection</span><h1>Your recipe collection.</h1><p>Recipes you publish or save will appear here.</p><div className="recipe-search"><Search size={22} aria-hidden="true" /><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search recipes" /></div><button className="primary-button create-button" type="button" onClick={onCreate}>Create a recipe</button></div>{shown.length ? <div className="recipe-grid user-recipe-grid">{shown.map((recipe) => <RecipeCard key={recipe.id} recipe={recipe} favorite={favorites.includes(recipe.id)} onFavorite={() => onFavorite(recipe.id)} />)}</div> : <p className="empty-state">No recipes published yet. Create your first recipe to start your collection.</p>}</main><Footer onNavigate={onNavigate} /></div> }
 function ShopPage({ onNavigate }) { return <div className="site-shell"><Header onNavigate={onNavigate} favorites={0} /><main className="recipes-page"><div className="recipes-heading"><span className="eyebrow">Shop</span><h1>Shoppables are coming soon.</h1><p>Your kitchen favorites will appear here.</p></div></main><Footer onNavigate={onNavigate} /></div> }
@@ -178,7 +170,46 @@ function MenusPage({ menus, setMenus, recipes, user, onHome, onCreate, onNavigat
   return <div className="site-shell"><main className="recipes-page"><button className="logo" type="button" onClick={onHome}><span><ChefHat size={22} aria-hidden="true" /></span>KKooks</button><div className="recipes-heading"><span className="eyebrow">Plan ahead</span><h1>Build your menus.</h1><p>Group recipes for Shabbat, holidays, or the week ahead.</p></div><form className="menu-form" onSubmit={saveMenu}><label>Menu name<input value={name} onChange={(event) => setName(event.target.value)} placeholder="Friday night dinner" required /></label><div className="menu-picker">{recipes.length ? recipes.map((recipe) => <label key={recipe.id} className="menu-option"><input type="checkbox" checked={selectedRecipes.includes(recipe.title)} onChange={() => toggleRecipe(recipe.title)} />{recipe.title}</label>) : <p className="empty-state">Create a recipe before adding it to a menu.</p>}</div><div className="form-buttons"><button className="primary-button" type="submit">Save menu</button><button className="secondary-button" type="button" onClick={onCreate}>Create recipe</button></div></form><div className="menu-list">{menus.map((menu) => <article key={menu.id}><h3>{menu.name}</h3><p>{menu.recipes.length ? menu.recipes.join(' · ') : 'No recipes added yet.'}</p><button className="text-button danger" type="button" onClick={async () => { if (user && db && !menu.id.startsWith('menu-')) await deleteMenu(menu.id); setMenus((current) => current.filter((item) => item.id !== menu.id)) }}>Delete</button></article>)}</div></main><Footer onNavigate={onNavigate} /></div>
 }
 function ComingSoonPage({ title, text, action, onAction, onHome }) { return <div className="site-shell"><main className="recipes-page coming-page"><button className="logo" type="button" onClick={onHome}><span><ChefHat size={22} aria-hidden="true" /></span>KKooks</button><div className="recipes-heading"><span className="eyebrow">Coming soon</span><h1>{title}</h1><p>{text}</p><button className="primary-button" type="button" onClick={onAction}>{action}</button></div></main><Footer onNavigate={onHome} /></div> }
-function AdminPage({ recipes: userRecipes, setRecipes, content, setContent, user, onHome }) {
+function ImportRecipePanel({ setRecipes, user }) {
+  const [form, setForm] = useState({ sourceUrl: '', title: '', chef: '', mood: 'Weeknight', image: '', description: '' })
+  const [status, setStatus] = useState('')
+  const update = (field, value) => setForm((current) => ({ ...current, [field]: value }))
+  const submit = async (event) => {
+    event.preventDefault()
+    let source
+    try {
+      source = new URL(form.sourceUrl)
+    } catch {
+      setStatus('Enter a valid recipe URL from kosher.com or kosherkitchenai.com.')
+      return
+    }
+    const host = source.hostname.toLowerCase().replace(/^www\./, '')
+    if (!['kosher.com', 'kosherkitchenai.com'].includes(host)) {
+      setStatus('Only kosher.com and kosherkitchenai.com recipe URLs are supported.')
+      return
+    }
+    if (!form.title.trim()) {
+      setStatus('Add a recipe title before importing.')
+      return
+    }
+    const importedRecipe = { ...form, title: form.title.trim(), chef: form.chef.trim() || 'Source recipe', sourceUrl: source.toString(), sourceName: host, imported: true, id: `recipe-${Date.now()}`, image: form.image.trim() || 'https://images.unsplash.com/photo-1498837167922-ddd27525d352?auto=format&fit=crop&w=900&q=85' }
+    try {
+      if (db) importedRecipe.id = await createRecipe(importedRecipe, user.uid)
+      setRecipes((current) => [importedRecipe, ...current])
+      setForm({ sourceUrl: '', title: '', chef: '', mood: 'Weeknight', image: '', description: '' })
+      setStatus('Recipe imported and published with source attribution.')
+    } catch (error) {
+      setStatus(error.message)
+    }
+  }
+  return <section className="admin-import-panel"><span className="eyebrow">Source import</span><h2>Import a recipe.</h2><p>Bring in recipe metadata from an approved source and keep the original attribution visible.</p><form className="admin-form" onSubmit={submit}><label>Recipe URL<input type="url" required value={form.sourceUrl} onChange={(event) => update('sourceUrl', event.target.value)} placeholder="https://www.kosher.com/recipe/..." /></label><label>Recipe title<input required value={form.title} onChange={(event) => update('title', event.target.value)} placeholder="Recipe title" /></label><label>Chef or source author<input value={form.chef} onChange={(event) => update('chef', event.target.value)} placeholder="Author name" /></label><label>Category<select value={form.mood} onChange={(event) => update('mood', event.target.value)}><option>Weeknight</option><option>Shabbat</option><option>Holiday</option><option>Dairy</option><option>Salads</option><option>Desserts</option></select></label><label>Image URL<input type="url" value={form.image} onChange={(event) => update('image', event.target.value)} placeholder="Optional image URL" /></label><label>Description<textarea rows="4" value={form.description} onChange={(event) => update('description', event.target.value)} placeholder="Short description you have permission to publish" /></label><button className="primary-button" type="submit">Import recipe</button></form>{status && <p className="admin-status" role="status">{status}</p>}<small className="import-note">Use only content you have permission to republish. The original source URL is stored with the recipe.</small></section>
+}
+
+function AdminPage(props) {
+  return <><RecipeAdminPage {...props} /><ImportRecipePanel setRecipes={props.setRecipes} user={props.user} /></>
+}
+
+function RecipeAdminPage({ recipes: userRecipes, setRecipes, content, setContent, user, onHome }) {
   const [tab, setTab] = useState('content')
   const [recipe, setRecipe] = useState({ title: '', chef: '', mood: 'Weeknight', description: '' })
   const [status, setStatus] = useState('')
