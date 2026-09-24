@@ -3,12 +3,12 @@ import { getAuth } from 'firebase/auth'
 import { getFirestore } from 'firebase/firestore'
 
 const firebaseConfig = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
-  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
-  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
-  appId: import.meta.env.VITE_FIREBASE_APP_ID
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || 'AIzaSyBJvA5q7ba31qS_ULZLagi8O4bG80vTeRI',
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || 'kkooks-app.firebaseapp.com',
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || 'kkooks-app',
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || 'kkooks-app.firebasestorage.app',
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || '569396783402',
+  appId: import.meta.env.VITE_FIREBASE_APP_ID || '1:569396783402:web:7847e4a45f1f57608bd653'
 }
 
 const firebaseReady = Boolean(
